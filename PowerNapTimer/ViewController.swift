@@ -23,6 +23,12 @@ class ViewController: UIViewController {
         setView()
     }
     
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        
+        resetTimer()
+    }
+    
     func setView() {
         updateTimerLabel()
         // If timer is running, start button title should say "Cancel". If timer is not running, title should say "Start nap"
@@ -37,12 +43,27 @@ class ViewController: UIViewController {
         timerLabel.text = myTimer.timeAsString()
     }
     
+    func resetTimer() {
+        UNUserNotificationCenter.current().getPendingNotificationRequests { (requests) in
+            let timerLocalNotifications = requests.filter{ $0.identifier == self.userNotificationIdentifier }
+            
+            guard let timerNotificationRequest = timerLocalNotifications.last,
+                let trigger = timerNotificationRequest.trigger as? UNCalendarNotificationTrigger,
+                let fireDate = trigger.nextTriggerDate() else { return }
+            
+            
+            
+            self.myTimer.stopTimer()
+            self.myTimer.startTimer(fireDate.timeIntervalSinceNow)
+        }
+    }
+    
     @IBAction func startButtonTapped(_ sender: Any) {
         if myTimer.isOn {
             myTimer.stopTimer()
             cancelLocalNotification()
         } else {
-            myTimer.startTimer(5)
+            myTimer.startTimer(10)
             scheduleLocalNotification()
         }
         setView()
@@ -86,6 +107,7 @@ extension ViewController {
                 let time = TimeInterval(timeText) else { return }
             
             self.myTimer.startTimer(time)
+            self.scheduleLocalNotification()
             self.setView()
             
             print("snooze hit")
@@ -109,7 +131,7 @@ extension ViewController {
         guard let timeRemaining = myTimer.timeRemaining else { return }
         let fireDate = Date(timeInterval: timeRemaining, since: Date())
         
-        let dateComponents = Calendar.current.dateComponents([.minute, .day], from: fireDate)
+        let dateComponents = Calendar.current.dateComponents([.minute, .second], from: fireDate)
         
         let dateTrigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: false)
         
