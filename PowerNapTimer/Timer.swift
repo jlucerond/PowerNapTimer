@@ -8,6 +8,12 @@
 
 import UIKit
 
+protocol TimerDelegate: class {
+    func timerSecondTick()
+    func timerCompleted()
+    func timerStopped()
+}
+
 class MyTimer: NSObject {
     
     var timeRemaining: TimeInterval?
@@ -21,6 +27,8 @@ class MyTimer: NSObject {
         }
     }
     
+    weak var delegate: TimerDelegate?
+    
     func timeAsString() -> String {
         let timeRemaining = Int(self.timeRemaining ?? 20*60)
         let minutesLeft = timeRemaining / 60
@@ -32,9 +40,11 @@ class MyTimer: NSObject {
         guard let timeRemaining = timeRemaining else {return}
         if timeRemaining > 0 {
             self.timeRemaining = timeRemaining - 1
+            delegate?.timerSecondTick()
             print(timeRemaining)
         } else {
             timer?.invalidate()
+            delegate?.timerCompleted()
             self.timeRemaining = nil
         }
     }
@@ -42,6 +52,7 @@ class MyTimer: NSObject {
     func startTimer(_ time: TimeInterval) {
         if !isOn {
             timeRemaining = time
+            self.secondTick()
             timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true, block: { (_) in
                 self.secondTick()
             })
@@ -50,6 +61,9 @@ class MyTimer: NSObject {
     
     func stopTimer() {
         if isOn {
+            delegate?.timerStopped()
+            // FIXME: - Why can't I just set this to nil here?
+            timer?.invalidate()
             timeRemaining = nil
         }
     }
