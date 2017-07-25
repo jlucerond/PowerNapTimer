@@ -7,8 +7,10 @@
 //
 
 import UIKit
+import UserNotifications
 
 class ViewController: UIViewController {
+    fileprivate let userNotificationIdentifier = "timerNotification"
     
     @IBOutlet weak var timerLabel: UILabel!
     @IBOutlet weak var startButton: UIButton!
@@ -19,10 +21,6 @@ class ViewController: UIViewController {
         super.viewDidLoad()
         myTimer.delegate = self
         setView()
-    }
-    
-    override func viewDidAppear(_ animated: Bool) {
-        createAnAlert()
     }
     
     func setView() {
@@ -42,8 +40,10 @@ class ViewController: UIViewController {
     @IBAction func startButtonTapped(_ sender: Any) {
         if myTimer.isOn {
             myTimer.stopTimer()
+            cancelLocalNotification()
         } else {
-            myTimer.startTimer(20*60.0)
+            myTimer.startTimer(5)
+            scheduleLocalNotification()
         }
         setView()
     }
@@ -61,6 +61,7 @@ extension ViewController: TimerDelegate {
     }
     
     func timerStopped() {
+        cancelLocalNotification()
         setView()
     }
 }
@@ -72,23 +73,56 @@ extension ViewController {
                                       message: "Get outta bed",
                                       preferredStyle: .alert)
         
-        let dismissAction = UIAlertAction(title: "Cancel",
-                                          style: .cancel){ (_) in
-                                            print("hit cancel")}
+        alert.addTextField{ (textField) in
+            textField.placeholder = "Snooze for a few more minutes..."
+            textField.keyboardType = .numberPad
+        }
         
-        let destructiveAction = UIAlertAction(title: "Destructive",
-                                              style: .destructive){ (_) in
-                                                print("hit destructive")}
+        let dismissAction = UIAlertAction(title: "Dismiss", style: .cancel){ (_) in
+            print("timer dismissed")}
         
-        let defaultAction = UIAlertAction(title: "Default",
-                                          style: .default){ (_) in
-                                            print("hit default")}
+        let defaultAction = UIAlertAction(title: "Snooze", style: .default){ (_) in
+            guard let timeText = alert.textFields?.first?.text,
+                let time = TimeInterval(timeText) else { return }
+            
+            self.myTimer.startTimer(time)
+            self.setView()
+            
+            print("snooze hit")
+            
+        }
         
         alert.addAction(dismissAction)
-        alert.addAction(destructiveAction)
         alert.addAction(defaultAction)
         
         present(alert, animated: true, completion: nil)
     }
 }
 
+// MARK: - UserNotifications
+extension ViewController {
+    func scheduleLocalNotification() {
+        let notificationContent = UNMutableNotificationContent()
+        notificationContent.title = "Wake up!"
+        notificationContent.body = "Time to get up"
+        
+        guard let timeRemaining = myTimer.timeRemaining else { return }
+        let fireDate = Date(timeInterval: timeRemaining, since: Date())
+        
+        let dateComponents = Calendar.current.dateComponents([.minute, .day], from: fireDate)
+        
+        let dateTrigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: false)
+        
+        let request = UNNotificationRequest(identifier: userNotificationIdentifier, content: notificationContent, trigger: dateTrigger)
+        
+        UNUserNotificationCenter.current().add(request) { (error) in
+            if let error = error {
+                print("Unable to add notification request. \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    func cancelLocalNotification() {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [userNotificationIdentifier])
+    }
+}
