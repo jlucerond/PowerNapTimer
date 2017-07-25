@@ -17,7 +17,12 @@ class ViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        myTimer.delegate = self
         setView()
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        createAnAlert()
     }
     
     func setView() {
@@ -41,6 +46,49 @@ class ViewController: UIViewController {
             myTimer.startTimer(20*60.0)
         }
         setView()
+    }
+}
+
+// MARK: - Timer Delegate Protocol Methods
+extension ViewController: TimerDelegate {
+    func timerSecondTick() {
+        updateTimerLabel()
+    }
+    
+    func timerCompleted() {
+        setView()
+        createAnAlert()
+    }
+    
+    func timerStopped() {
+        setView()
+    }
+}
+
+// MARK: - UIAlertController Methods
+extension ViewController {
+    func createAnAlert() {
+        let alert = UIAlertController(title: "Wake up",
+                                      message: "Get outta bed",
+                                      preferredStyle: .alert)
+        
+        let dismissAction = UIAlertAction(title: "Cancel",
+                                          style: .cancel){ (_) in
+                                            print("hit cancel")}
+        
+        let destructiveAction = UIAlertAction(title: "Destructive",
+                                              style: .destructive){ (_) in
+                                                print("hit destructive")}
+        
+        let defaultAction = UIAlertAction(title: "Default",
+                                          style: .default){ (_) in
+                                            print("hit default")}
+        
+        alert.addAction(dismissAction)
+        alert.addAction(destructiveAction)
+        alert.addAction(defaultAction)
+        
+        present(alert, animated: true, completion: nil)
     }
 }
 

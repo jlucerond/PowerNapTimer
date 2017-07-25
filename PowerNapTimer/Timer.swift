@@ -39,9 +39,9 @@ class MyTimer: NSObject {
     fileprivate func secondTick() {
         guard let timeRemaining = timeRemaining else {return}
         if timeRemaining > 0 {
+            print(timeRemaining)
             self.timeRemaining = timeRemaining - 1
             delegate?.timerSecondTick()
-            print(timeRemaining)
         } else {
             timer?.invalidate()
             delegate?.timerCompleted()
@@ -52,7 +52,7 @@ class MyTimer: NSObject {
     func startTimer(_ time: TimeInterval) {
         if !isOn {
             timeRemaining = time
-            self.secondTick()
+//            self.secondTick()
             timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true, block: { (_) in
                 self.secondTick()
             })
